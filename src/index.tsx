@@ -1,19 +1,10 @@
-import React from 'react';
-import ReactDOM from 'react-dom/client';
-import './index.css';
-import App from './App';
-import reportWebVitals from './reportWebVitals';
+import { initializeIcons } from '@fluentui/font-icons-mdl2';
+import * as ElmReact from 'elm-ts/lib/React';
+import { render } from 'react-dom';
+import * as Main from './counter';
+import './App.css';
 
-const root = ReactDOM.createRoot(
-  document.getElementById('root') as HTMLElement
-);
-root.render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
-);
+initializeIcons();
 
-// If you want to start measuring performance in your app, pass a function
-// to log results (for example: reportWebVitals(console.log))
-// or send to an analytics endpoint. Learn more: https://bit.ly/CRA-vitals
-reportWebVitals();
+const main = ElmReact.program(Main.init, Main.update, Main.view)
+ElmReact.run(main, dom => render(dom, document.getElementById('root')!))
