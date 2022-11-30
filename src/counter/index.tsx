@@ -40,7 +40,7 @@ export const view = (model: Model): Html<Msg> => {
       <DefaultButton text='-' onClick={() => dispatch({ type: 'Decrement' })} />
       <PrimaryButton text='Reset' onClick={() => dispatch({ type: 'Reset' })} /><br/><br/>
       <TextField value={model.inputValue} onChange={(_, newValue) => dispatch({ type: 'ChangeInput', value: newValue || '' })} />
-      <DefaultButton text='+' onClick={() => dispatch({ type: 'Plus' ,  value: isNaN(Number(model.inputValue)) })} />
+      <DefaultButton text='+' onClick={() => dispatch({ type: 'Plus', value: Number(model.inputValue) })} />
       <DefaultButton text='-' onClick={() => dispatch({ type: 'Minus' , value: Number(model.inputValue) })} />
     </div>
   )
