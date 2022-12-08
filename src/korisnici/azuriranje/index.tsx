@@ -1,12 +1,12 @@
-import deepEqual from "fast-deep-equal";
 import { Html } from "elm-ts/lib/React";
 import * as Cmd from "elm-ts/lib/Cmd";
+import deepEqual from "fast-deep-equal";
 import {
-  PrimaryButton,
-  TextField,
-  Stack,
   Dialog,
   DialogFooter,
+  PrimaryButton,
+  Stack,
+  TextField,
 } from "@fluentui/react";
 
 export type Form = {
@@ -24,11 +24,11 @@ export type CancelModel = { type: "Cancel" };
 export type Model = ActiveModel | SuccessModel | CancelModel;
 
 const initialForm = {
-  firstName: null,
-  lastName: null,
-  userType: null,
-  city: null,
-  adress: null,
+  firstName: "Bojan",
+  lastName: "Lukic",
+  userType: "Internship",
+  city: "Alibunar",
+  adress: "Brigadirska 8",
 };
 
 export const init: [Model, Cmd.Cmd<Msg>] = [
@@ -40,50 +40,21 @@ export const init: [Model, Cmd.Cmd<Msg>] = [
 ];
 
 export type Msg =
+  | { type: "ChangeForm"; value: Form }
   | { type: "Save" }
-  | { type: "Cancel" }
-  | { type: "ChangeForm"; value: Form };
-// | { type: "ChangeFirstName"; value: string | null }
-// | { type: "ChangeLastName"; value: string | null }
-// | { type: "ChangeUserType"; value: string | null }
-// | { type: "ChangeCity"; value: string | null }
-// | { type: "ChangeAdress"; value: string | null };
+  | { type: "Cancel" };
 
 export const update = (msg: Msg, model: Model): [Model, Cmd.Cmd<Msg>] => {
   switch (msg.type) {
+    case "ChangeForm":
+      if (model.type !== "Active") return [model, Cmd.none];
+      return [{ ...model, form: msg.value }, Cmd.none];
     case "Save":
       if (model.type !== "Active") return [model, Cmd.none];
-      window.alert("Sacuvano");
       return [{ type: "Success" }, Cmd.none];
     case "Cancel":
       if (model.type !== "Active") return [model, Cmd.none];
       return [{ type: "Cancel" }, Cmd.none];
-    case "ChangeForm":
-      if (model.type !== "Active") return [model, Cmd.none];
-      return [{ ...model, form: msg.value }, Cmd.none];
-
-    // case "ChangeFirstName":
-    //   return [
-    //     { ...model, form: { ...model.form, firstName: msg.value } },
-    //     Cmd.none,
-    //   ];
-    // case "ChangeLastName":
-    //   return [
-    //     { ...model, form: { ...model.form, lastName: msg.value } },
-    //     Cmd.none,
-    //   ];
-    // case "ChangeUserType":
-    //   return [
-    //     { ...model, form: { ...model.form, userType: msg.value } },
-    //     Cmd.none,
-    //   ];
-    // case "ChangeCity":
-    //   return [{ ...model, form: { ...model.form, city: msg.value } }, Cmd.none];
-    // case "ChangeAdress":
-    //   return [
-    //     { ...model, form: { ...model.form, adress: msg.value } },
-    //     Cmd.none,
-    //   ];
   }
 };
 
@@ -92,9 +63,9 @@ export const activeView = (model: ActiveModel): Html<Msg> => {
     <Dialog
       minWidth={700}
       hidden={false}
-      onDismiss={() => dispatch({ type: "Cancel" })}
-      dialogContentProps={{ title: "Kreiranje korisnika" }}
+      dialogContentProps={{ title: "Azuriranje" }}
       modalProps={{ isBlocking: true }}
+      onDismiss={() => dispatch({ type: "Cancel" })}
     >
       <Stack tokens={{ childrenGap: 10 }}>
         <TextField
@@ -151,8 +122,8 @@ export const activeView = (model: ActiveModel): Html<Msg> => {
       <DialogFooter>
         <PrimaryButton
           text="Save"
-          onClick={() => dispatch({ type: "Save" })}
           disabled={deepEqual(initialForm, model.form)}
+          onClick={() => dispatch({ type: "Save" })}
         />
       </DialogFooter>
     </Dialog>
@@ -161,9 +132,9 @@ export const activeView = (model: ActiveModel): Html<Msg> => {
 
 export const restView = (): Html<Msg> => (_dispatch) => <></>;
 
-export const view =
-  (model: Model): Html<Msg> =>
-  (dispatch) =>
+export const view = (model: Model): Html<Msg> => {
+  return (dispatch) =>
     model.type === "Active"
       ? activeView(model)(dispatch)
       : restView()(dispatch);
+};
