@@ -8,6 +8,7 @@ import {
   Stack,
   TextField,
 } from "@fluentui/react";
+import { Person } from "../api";
 
 export type Form = {
   firstName: string | null;
@@ -17,24 +18,31 @@ export type Form = {
   adress: string | null;
 };
 
-export type ActiveModel = { type: "Active"; form: Form };
+export type ActiveModel = { type: "Active"; form: Form; original: Person };
 export type SuccessModel = { type: "Success" };
 export type CancelModel = { type: "Cancel" };
 
 export type Model = ActiveModel | SuccessModel | CancelModel;
 
-const initialForm = {
-  firstName: "Bojan",
-  lastName: "Lukic",
-  userType: "Internship",
-  city: "Alibunar",
-  adress: "Brigadirska 8",
-};
+const initialForm = ({
+  firstName,
+  lastName,
+  userType,
+  adress,
+  city,
+}: Person) => ({
+  firstName,
+  lastName,
+  userType,
+  city,
+  adress,
+});
 
-export const init: [Model, Cmd.Cmd<Msg>] = [
+export const init = (original: Person): [Model, Cmd.Cmd<Msg>] => [
   {
     type: "Active",
-    form: initialForm,
+    form: initialForm(original),
+    original,
   },
   Cmd.none,
 ];
@@ -69,7 +77,7 @@ export const activeView = (model: ActiveModel): Html<Msg> => {
     >
       <Stack tokens={{ childrenGap: 10 }}>
         <TextField
-          label="First Name"
+          label="Ime"
           value={model.form.firstName || undefined}
           onChange={(_, newValue) =>
             dispatch({
@@ -79,7 +87,7 @@ export const activeView = (model: ActiveModel): Html<Msg> => {
           }
         />
         <TextField
-          label="Last Name"
+          label="Prezime"
           value={model.form.lastName || undefined}
           onChange={(_, newValue) =>
             dispatch({
@@ -89,7 +97,7 @@ export const activeView = (model: ActiveModel): Html<Msg> => {
           }
         />
         <TextField
-          label="User Type"
+          label="Zanimanje"
           value={model.form.userType || undefined}
           onChange={(_, newValue) =>
             dispatch({
@@ -99,7 +107,7 @@ export const activeView = (model: ActiveModel): Html<Msg> => {
           }
         />
         <TextField
-          label="City"
+          label="Grad"
           value={model.form.city || undefined}
           onChange={(_, newValue) =>
             dispatch({
@@ -109,7 +117,7 @@ export const activeView = (model: ActiveModel): Html<Msg> => {
           }
         />
         <TextField
-          label="Adress"
+          label="Adresa"
           value={model.form.adress || undefined}
           onChange={(_, newValue) =>
             dispatch({
@@ -121,7 +129,7 @@ export const activeView = (model: ActiveModel): Html<Msg> => {
       </Stack>
       <DialogFooter>
         <PrimaryButton
-          text="Save"
+          text="Sacuvaj"
           disabled={deepEqual(initialForm, model.form)}
           onClick={() => dispatch({ type: "Save" })}
         />

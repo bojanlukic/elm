@@ -1,4 +1,3 @@
-import deepEqual from "fast-deep-equal";
 import { Html } from "elm-ts/lib/React";
 import * as Cmd from "elm-ts/lib/Cmd";
 import {
@@ -8,6 +7,9 @@ import {
   Dialog,
   DialogFooter,
 } from "@fluentui/react";
+import { addUser, Person } from "../api";
+import { Either } from "fp-ts/lib/Either";
+import { send, HttpError } from "elm-ts/lib/Http";
 
 export type Form = {
   firstName: string | null;
@@ -15,6 +17,7 @@ export type Form = {
   userType: string | null;
   city: string | null;
   adress: string | null;
+  createdDate: string | null;
 };
 
 export type ActiveModel = { type: "Active"; form: Form };
@@ -29,6 +32,7 @@ const initialForm = {
   userType: null,
   city: null,
   adress: null,
+  createdDate: null,
 };
 
 export const init: [Model, Cmd.Cmd<Msg>] = [
@@ -41,6 +45,7 @@ export const init: [Model, Cmd.Cmd<Msg>] = [
 
 export type Msg =
   | { type: "Save" }
+  | { type: "Saved"; value: Either<HttpError, Person> }
   | { type: "Cancel" }
   | { type: "ChangeForm"; value: Form };
 // | { type: "ChangeFirstName"; value: string | null }
@@ -51,9 +56,31 @@ export type Msg =
 
 export const update = (msg: Msg, model: Model): [Model, Cmd.Cmd<Msg>] => {
   switch (msg.type) {
-    case "Save":
+    case "Save": // poziva API kad se dodaje osoba
       if (model.type !== "Active") return [model, Cmd.none];
-      window.alert("Sacuvano");
+      const { adress, city, createdDate, firstName, lastName, userType } =
+        model.form;
+      return [
+        model,
+        send(
+          addUser({
+            id: Math.ceil(10000 * Math.random() + 10000),
+            adress: adress || "",
+            city: city || "",
+            createdDate: createdDate || "",
+            firstName: firstName || "",
+            lastName: lastName || "",
+            userType: userType || "",
+          }),
+          (value) => ({ type: "Saved", value })
+        ),
+      ];
+    case "Saved": //// da li je prosao API ili je greska
+      if (model.type !== "Active") return [model, Cmd.none];
+      if (msg.value.isLeft()) {
+        alert(JSON.stringify(msg.value.value));
+        return [model, Cmd.none];
+      }
       return [{ type: "Success" }, Cmd.none];
     case "Cancel":
       if (model.type !== "Active") return [model, Cmd.none];
@@ -87,6 +114,21 @@ export const update = (msg: Msg, model: Model): [Model, Cmd.Cmd<Msg>] => {
   }
 };
 
+export const checkSave = ({
+  adress,
+  city,
+  createdDate,
+  firstName,
+  lastName,
+  userType,
+}: Form) =>
+  adress !== null &&
+  city !== null &&
+  createdDate !== null &&
+  firstName !== null &&
+  lastName !== null &&
+  userType !== null;
+
 export const activeView = (model: ActiveModel): Html<Msg> => {
   return (dispatch) => (
     <Dialog
@@ -98,7 +140,7 @@ export const activeView = (model: ActiveModel): Html<Msg> => {
     >
       <Stack tokens={{ childrenGap: 10 }}>
         <TextField
-          label="First Name"
+          label="Ime"
           value={model.form.firstName || undefined}
           onChange={(_, newValue) =>
             dispatch({
@@ -108,7 +150,7 @@ export const activeView = (model: ActiveModel): Html<Msg> => {
           }
         />
         <TextField
-          label="Last Name"
+          label="Prezime"
           value={model.form.lastName || undefined}
           onChange={(_, newValue) =>
             dispatch({
@@ -118,7 +160,7 @@ export const activeView = (model: ActiveModel): Html<Msg> => {
           }
         />
         <TextField
-          label="User Type"
+          label="Zanimanje"
           value={model.form.userType || undefined}
           onChange={(_, newValue) =>
             dispatch({
@@ -128,7 +170,7 @@ export const activeView = (model: ActiveModel): Html<Msg> => {
           }
         />
         <TextField
-          label="City"
+          label="Grad"
           value={model.form.city || undefined}
           onChange={(_, newValue) =>
             dispatch({
@@ -138,7 +180,7 @@ export const activeView = (model: ActiveModel): Html<Msg> => {
           }
         />
         <TextField
-          label="Adress"
+          label="Adresa"
           value={model.form.adress || undefined}
           onChange={(_, newValue) =>
             dispatch({
@@ -147,12 +189,22 @@ export const activeView = (model: ActiveModel): Html<Msg> => {
             })
           }
         />
+        <TextField
+          label="Datum"
+          value={model.form.createdDate || undefined}
+          onChange={(_, newValue) =>
+            dispatch({
+              type: "ChangeForm",
+              value: { ...model.form, createdDate: newValue || null },
+            })
+          }
+        />
       </Stack>
       <DialogFooter>
         <PrimaryButton
-          text="Save"
+          text="Dodaj"
           onClick={() => dispatch({ type: "Save" })}
-          disabled={deepEqual(initialForm, model.form)}
+          disabled={!checkSave(model.form)}
         />
       </DialogFooter>
     </Dialog>
