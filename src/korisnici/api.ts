@@ -1,6 +1,7 @@
 import * as io from "io-ts";
-import { Request, get, post } from "elm-ts/lib/Http";
+import { Request, get, post, expectJson } from "elm-ts/lib/Http";
 import { fromType } from "elm-ts/lib/Decode";
+import { none } from "fp-ts/lib/Option";
 
 const url = "http://localhost:3000/PERSON";
 
@@ -26,7 +27,33 @@ export type Persons = io.TypeOf<typeof ioPersons>;
 export const fetchUser = (): Request<Persons> => {
   return get(url, fromType(ioPersons));
 };
-
-export const addUser = (user: Person): Request<Person> => {
-  return post(url, user, fromType(ioPerson));
+// pozivanje api-a za kreiranje
+export const addUser = (korisnik: Person): Request<Person> => {
+  return post(url, korisnik, fromType(ioPerson));
 };
+
+export const editUser = (korisnik: Person): Request<Person> => ({
+  method: "PUT",
+  headers: {
+    "Content-Type": "application/json",
+  },
+  url: `${url}/${korisnik.id}`,
+  body: korisnik,
+  expect: expectJson(fromType(ioPerson)),
+  timeout: none,
+  withCredentials: false,
+});
+
+export const ioDeletedUser = io.interface({});
+export type DeletedUser = io.TypeOf<typeof ioDeletedUser>;
+
+export const deleteUser = (id: number): Request<DeletedUser> => ({
+  method: "DELETE",
+  headers: {
+    "Content-Type": "application/json",
+  },
+  url: `${url}/${id}`,
+  expect: expectJson(fromType(ioDeletedUser)),
+  timeout: none,
+  withCredentials: false,
+});

@@ -8,7 +8,9 @@ import {
   Stack,
   TextField,
 } from "@fluentui/react";
-import { Person } from "../api";
+import { editUser, Person } from "../api";
+import { Either } from "fp-ts/lib/Either";
+import { send, HttpError } from "elm-ts/lib/Http";
 
 export type Form = {
   firstName: string | null;
@@ -16,6 +18,7 @@ export type Form = {
   userType: string | null;
   city: string | null;
   adress: string | null;
+  createdDate: string | null;
 };
 
 export type ActiveModel = { type: "Active"; form: Form; original: Person };
@@ -30,12 +33,14 @@ const initialForm = ({
   userType,
   adress,
   city,
+  createdDate,
 }: Person) => ({
   firstName,
   lastName,
   userType,
   city,
   adress,
+  createdDate,
 });
 
 export const init = (original: Person): [Model, Cmd.Cmd<Msg>] => [
@@ -49,23 +54,53 @@ export const init = (original: Person): [Model, Cmd.Cmd<Msg>] => [
 
 export type Msg =
   | { type: "ChangeForm"; value: Form }
+  | { type: "Cancel" }
   | { type: "Save" }
-  | { type: "Cancel" };
+  | { type: "Saved"; value: Either<HttpError, Person> };
 
 export const update = (msg: Msg, model: Model): [Model, Cmd.Cmd<Msg>] => {
   switch (msg.type) {
     case "ChangeForm":
       if (model.type !== "Active") return [model, Cmd.none];
       return [{ ...model, form: msg.value }, Cmd.none];
-    case "Save":
+    case "Cancel":
       if (model.type !== "Active") return [model, Cmd.none];
+      return [{ type: "Cancel" }, Cmd.none];
+
+    case "Save": {
+      if (model.type !== "Active") return [model, Cmd.none];
+      const {
+        form: { adress, city, createdDate, firstName, lastName, userType },
+        original: { id },
+      } = model;
+      return [
+        model,
+        send(
+          editUser({
+            id,
+            firstName: firstName || "",
+            lastName: lastName || "",
+            userType: userType || "",
+            city: city || "",
+            adress: adress || "",
+            createdDate: createdDate || "",
+          }),
+          (response) => ({ type: "Saved", value: response })
+        ),
+      ];
+    }
+    case "Saved":
+      if (model.type !== "Active") return [model, Cmd.none];
+      if (msg.value.isLeft()) {
+        alert(JSON.stringify(msg.value.value));
+        return [model, Cmd.none];
+      }
       return [{ type: "Success" }, Cmd.none];
     case "Cancel":
       if (model.type !== "Active") return [model, Cmd.none];
       return [{ type: "Cancel" }, Cmd.none];
   }
 };
-
 export const activeView = (model: ActiveModel): Html<Msg> => {
   return (dispatch) => (
     <Dialog
@@ -130,7 +165,7 @@ export const activeView = (model: ActiveModel): Html<Msg> => {
       <DialogFooter>
         <PrimaryButton
           text="Sacuvaj"
-          disabled={deepEqual(initialForm, model.form)}
+          disabled={deepEqual(initialForm(model.original), model.form)}
           onClick={() => dispatch({ type: "Save" })}
         />
       </DialogFooter>

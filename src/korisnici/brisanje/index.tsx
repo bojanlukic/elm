@@ -5,9 +5,11 @@ import {
   Dialog,
   DialogFooter,
   PrimaryButton,
-  // Stack,
   Text,
 } from "@fluentui/react";
+import { deleteUser, DeletedUser } from "../api";
+import { send, HttpError } from "elm-ts/lib/Http";
+import { Either } from "fp-ts/lib/Either";
 
 export type ActiveModel = { type: "Active" };
 export type SuccessModel = { type: "Success" };
@@ -17,18 +19,32 @@ export type Model = ActiveModel | SuccessModel | CancelModel;
 
 export const init: [Model, Cmd.Cmd<Msg>] = [{ type: "Active" }, Cmd.none];
 
-export type Msg = { type: "Save" } | { type: "Cancel" };
+export type Msg =
+  | { type: "Cancel" }
+  | { type: "Save" }
+  | { type: "Saved"; value: Either<HttpError, DeletedUser> };
 
-export const update = (msg: Msg, model: Model): [Model, Cmd.Cmd<Msg>] => {
+export const update = (
+  id: number,
+  msg: Msg,
+  model: Model
+): [Model, Cmd.Cmd<Msg>] => {
   switch (msg.type) {
-    case "Save":
-      if (model.type !== "Active") return [model, Cmd.none];
-      window.alert("Korisnik je obrisan!");
-      return [{ type: "Success" }, Cmd.none];
-
     case "Cancel":
       if (model.type !== "Active") return [model, Cmd.none];
       return [{ type: "Cancel" }, Cmd.none];
+    case "Save": {
+      if (model.type !== "Active") return [model, Cmd.none];
+      return [
+        model,
+        send(deleteUser(id), (value) => ({ type: "Saved", value })),
+      ];
+    }
+    case "Saved": {
+      return msg.value.isRight()
+        ? [{ type: "Success" }, Cmd.none]
+        : [model, Cmd.none];
+    }
   }
 };
 
