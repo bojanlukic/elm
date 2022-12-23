@@ -16,7 +16,6 @@ import * as Brisanje from "./brisanje";
 import * as Pregled from "./pregled";
 import { fetchUser, Persons, Person } from "./api";
 import moment from "moment";
-import { act } from "react-dom/test-utils";
 
 export type ActiveModel = {
   type: "Active";
@@ -56,7 +55,7 @@ export const update = (msg: Msg, model: Model): [Model, Cmd.Cmd<Msg>] => {
       if (model.type !== "Loading") return [model, Cmd.none];
       return msg.data.fold(
         (error) => {
-          alert(error);
+          alert(JSON.stringify(error));
           return [model, Cmd.none];
         },
         (data) => [{ type: "Active", selected: null, data } as Model, Cmd.none]
