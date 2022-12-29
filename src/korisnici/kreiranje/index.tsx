@@ -115,19 +115,19 @@ export const update = (msg: Msg, model: Model): [Model, Cmd.Cmd<Msg>] => {
 };
 
 export const checkSave = ({
-  adress,
-  city,
-  createdDate,
   firstName,
   lastName,
+  adress,
   userType,
+  city,
+  createdDate,
 }: Form) =>
-  adress !== null &&
-  city !== null &&
-  createdDate !== null &&
   firstName !== null &&
   lastName !== null &&
-  userType !== null;
+  createdDate !== null &&
+  userType !== null &&
+  city !== null &&
+  adress !== null;
 
 export const activeView = (model: ActiveModel): Html<Msg> => {
   return (dispatch) => (

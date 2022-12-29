@@ -91,7 +91,6 @@ export const update = (msg: Msg, model: Model): [Model, Cmd.Cmd<Msg>] => {
         msg.value,
         model.pregled
       );
-      if (pregledModel.type === "Success") return init;
       if (pregledModel.type === "Cancel")
         return [{ ...model, pregled: undefined }, Cmd.none];
       return [

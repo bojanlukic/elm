@@ -9,6 +9,8 @@ import {
   DetailsList,
   Spinner,
   SpinnerSize,
+  TextField,
+  DefaultButton,
 } from "@fluentui/react";
 import * as Kreiranje from "./kreiranje";
 import * as Azuriranje from "./azuriranje";
@@ -20,11 +22,14 @@ import moment from "moment";
 export type ActiveModel = {
   type: "Active";
   data: Persons | null;
-  selected: Person | null;
+  filteredData: Persons | null;
+  selektovani: Person | null;
   kreiranje?: Kreiranje.Model;
   azuriranje?: Azuriranje.Model;
   brisanje?: Brisanje.Model;
   pregled?: Pregled.Model;
+  ime: string;
+  prezime: string;
 };
 
 export type LoadingModel = { type: "Loading" };
@@ -38,7 +43,7 @@ export const init: [Model, Cmd.Cmd<Msg>] = [
 
 export type Msg =
   | { type: "FetchUser"; data: Either<HttpError, Persons> }
-  | { type: "ChangeSelected"; value: Person | null }
+  | { type: "PromeniSelektovanog"; value: Person | null }
   | { type: "StartKreiranje" }
   | { type: "Kreiranje"; value: Kreiranje.Msg }
   | { type: "StartAzuriranje" }
@@ -47,7 +52,10 @@ export type Msg =
   | { type: "Brisanje"; value: Brisanje.Msg }
   | { type: "Refresh" }
   | { type: "StartPregled" }
-  | { type: "Pregled"; value: Pregled.Msg };
+  | { type: "Pregled"; value: Pregled.Msg }
+  | { type: "PromeniIme"; value: string }
+  | { type: "PromeniPrezime"; value: string }
+  | { type: "Pretraga" };
 
 export const update = (msg: Msg, model: Model): [Model, Cmd.Cmd<Msg>] => {
   switch (msg.type) {
@@ -58,14 +66,17 @@ export const update = (msg: Msg, model: Model): [Model, Cmd.Cmd<Msg>] => {
           alert(JSON.stringify(error));
           return [model, Cmd.none];
         },
-        (data) => [{ type: "Active", selected: null, data } as Model, Cmd.none]
+        (data) => [
+          { type: "Active", selektovani: null, data } as Model,
+          Cmd.none,
+        ]
       );
     }
-    case "ChangeSelected":
+    case "PromeniSelektovanog":
       if (model.type !== "Active") return [model, Cmd.none];
       console.log("model =", model);
-      console.log("selected =", msg.value);
-      return [{ ...model, selected: msg.value }, Cmd.none];
+      console.log("selektovani =", msg.value);
+      return [{ ...model, selektovani: msg.value }, Cmd.none];
 
     case "StartKreiranje":
       if (model.type !== "Active") return [model, Cmd.none];
@@ -92,8 +103,10 @@ export const update = (msg: Msg, model: Model): [Model, Cmd.Cmd<Msg>] => {
     }
     case "StartAzuriranje":
       if (model.type !== "Active") return [model, Cmd.none];
-      if (model.selected === null) return [model, Cmd.none];
-      const [azuriranjeModel, azuriranjeMsg] = Azuriranje.init(model.selected);
+      if (model.selektovani === null) return [model, Cmd.none];
+      const [azuriranjeModel, azuriranjeMsg] = Azuriranje.init(
+        model.selektovani
+      );
       return [
         { ...model, azuriranje: azuriranjeModel },
         Cmd.map(azuriranjeMsg, (value) => ({ type: "Azuriranje", value })),
@@ -124,9 +137,9 @@ export const update = (msg: Msg, model: Model): [Model, Cmd.Cmd<Msg>] => {
     case "Brisanje": {
       if (model.type !== "Active") return [model, Cmd.none];
       if (model.brisanje === undefined) return [model, Cmd.none];
-      if (model.selected === null) return [model, Cmd.none];
+      if (model.selektovani === null) return [model, Cmd.none];
       const [brisanjeModel, brisanjeMsg] = Brisanje.update(
-        model.selected.id,
+        model.selektovani.id,
         msg.value,
         model.brisanje
       );
@@ -144,8 +157,8 @@ export const update = (msg: Msg, model: Model): [Model, Cmd.Cmd<Msg>] => {
     }
     case "StartPregled":
       if (model.type !== "Active") return [model, Cmd.none];
-      if (model.selected === null) return [model, Cmd.none];
-      const [pregledModel, pregledMsg] = Pregled.init(model.selected);
+      if (model.selektovani === null) return [model, Cmd.none];
+      const [pregledModel, pregledMsg] = Pregled.init(model.selektovani);
       return [
         { ...model, pregled: pregledModel },
         Cmd.map(pregledMsg, (value) => ({ type: "Pregled", value })),
@@ -166,9 +179,25 @@ export const update = (msg: Msg, model: Model): [Model, Cmd.Cmd<Msg>] => {
         Cmd.map(pregledMsg, (value) => ({ type: "Pregled", value })),
       ];
     }
+    case "PromeniIme":
+      if (model.type !== "Active") return [model, Cmd.none];
+      return [{ ...model, ime: msg.value }, Cmd.none];
+    case "PromeniPrezime":
+      if (model.type !== "Active") return [model, Cmd.none];
+      return [{ ...model, prezime: msg.value }, Cmd.none];
+    case "Pretraga":
+      if (model.type !== "Active") return [model, Cmd.none];
+      if (model.data === null) return [model, Cmd.none];
+
+      const filtered = model.data.filter((item) => {
+        return (
+          item.firstName.toLowerCase().startsWith(model.ime.toLowerCase()) ||
+          item.lastName.toLowerCase().startsWith(model.prezime.toLowerCase())
+        );
+      });
+      return [{ ...model, data: filtered }, Cmd.none];
   }
 };
-
 const columns: IColumn[] = [
   {
     key: "firstname",
@@ -217,49 +246,83 @@ const columns: IColumn[] = [
 ];
 
 export const activeView = (model: ActiveModel): Html<Msg> => {
-  const { selected, data, kreiranje, azuriranje, brisanje, pregled } = model;
+  const {
+    selektovani,
+    data,
+    kreiranje,
+    azuriranje,
+    brisanje,
+    pregled,
+    ime,
+    prezime,
+    filteredData,
+  } = model;
   return (dispatch) => (
     <Stack grow={1}>
-      <Stack
-        grow={1}
-        horizontal={true}
-        horizontalAlign="end"
-        tokens={{ childrenGap: 10 }}
-      >
-        <IconButton
-          iconProps={{ iconName: "Add" }}
-          onClick={() => dispatch({ type: "StartKreiranje" })}
-        />
+      <Stack horizontal={true} style={{ padding: "10px" }}>
+        <Stack horizontal={true} tokens={{ childrenGap: 20 }}>
+          <TextField
+            prefix="Ime :"
+            value={ime || undefined}
+            onChange={(_, newValue) =>
+              dispatch({ type: "PromeniIme", value: newValue || "" })
+            }
+          />
+          <TextField
+            prefix="Prezime :"
+            value={prezime || undefined}
+            onChange={(_, newValue) =>
+              dispatch({ type: "PromeniPrezime", value: newValue || "" })
+            }
+          />
+          <DefaultButton
+            text="Trazi"
+            iconProps={{ iconName: "Search" }}
+            onClick={() => dispatch({ type: "Pretraga" })}
+          />
+        </Stack>
+        <Stack
+          grow={1}
+          horizontal={true}
+          horizontalAlign="end"
+          tokens={{ childrenGap: 10 }}
+        >
+          <IconButton
+            iconProps={{ iconName: "Add" }}
+            onClick={() => dispatch({ type: "StartKreiranje" })}
+          />
 
-        <IconButton
-          iconProps={{ iconName: "Edit" }}
-          onClick={() => dispatch({ type: "StartAzuriranje" })}
-          disabled={!selected}
-        />
+          <IconButton
+            iconProps={{ iconName: "Edit" }}
+            onClick={() => dispatch({ type: "StartAzuriranje" })}
+            disabled={!selektovani}
+          />
 
-        <IconButton
-          iconProps={{ iconName: "Delete" }}
-          onClick={() => dispatch({ type: "StartBrisanje" })}
-          disabled={!selected}
-        />
-        <IconButton
-          iconProps={{ iconName: "Refresh" }}
-          onClick={() => dispatch({ type: "Refresh" })}
-        />
-        <IconButton
-          iconProps={{ iconName: "TextDocument" }}
-          onClick={() => dispatch({ type: "StartPregled" })}
-          disabled={!selected}
-        />
+          <IconButton
+            iconProps={{ iconName: "Delete" }}
+            onClick={() => dispatch({ type: "StartBrisanje" })}
+            disabled={!selektovani}
+          />
+          <IconButton
+            iconProps={{ iconName: "Refresh" }}
+            onClick={() => dispatch({ type: "Refresh" })}
+          />
+          <IconButton
+            iconProps={{ iconName: "TextDocument" }}
+            onClick={() => dispatch({ type: "StartPregled" })}
+            disabled={!selektovani}
+          />
+        </Stack>
       </Stack>
-
-      <DetailsList
-        items={data || []}
-        columns={columns}
-        onActiveItemChanged={(item) =>
-          dispatch({ type: "ChangeSelected", value: item })
-        }
-      />
+      {data && (
+        <DetailsList
+          items={data || []}
+          columns={columns}
+          onActiveItemChanged={(item) =>
+            dispatch({ type: "PromeniSelektovanog", value: item })
+          }
+        />
+      )}
       {kreiranje &&
         HtmlMap(
           Kreiranje.view(kreiranje),

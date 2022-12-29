@@ -4,10 +4,9 @@ import { Dialog, Stack, TextField } from "@fluentui/react";
 import { Word } from "../api";
 
 export type ActiveModel = { type: "Active"; original: Word };
-export type SuccessModel = { type: "Success" };
 export type CancelModel = { type: "Cancel" };
 
-export type Model = ActiveModel | SuccessModel | CancelModel;
+export type Model = ActiveModel | CancelModel;
 
 export const init = (original: Word): [Model, Cmd.Cmd<Msg>] => [
   {
